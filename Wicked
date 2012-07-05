@@ -1,0 +1,13 @@
+<?
+
+$config = array(
+  'requires'=>array(
+    'class_lazyloader',
+  ),
+  'name'=>'data',
+  'secret_key'=>W::$root_fpath,
+  'digest_method'=>'md5',
+  'ttl'=>30*60,
+  'domain'=>'',
+  'path'=>'/',
+);
