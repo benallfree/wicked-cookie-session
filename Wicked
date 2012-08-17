@@ -5,7 +5,7 @@ $config = array(
     'class_lazyloader',
   ),
   'name'=>'data',
-  'secret_key'=>W::$root_fpath,
+  'secret_key'=>__FILE__,
   'digest_method'=>'md5',
   'ttl'=>30*60,
   'domain'=>'',
