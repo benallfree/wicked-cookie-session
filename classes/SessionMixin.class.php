@@ -13,23 +13,35 @@ class SessionMixin extends Mixin {
       self::$config = W::module('cookie_session');
     }
     
-    static function set($key, $value, $lifetime) {
-        $cookie_content = self::_fetch_cookie_content();
-        $now = time();
-        $cookie_content->{$key} = array('value' => $value,
-                                        'expires_at' => $now + $lifetime);
-        $cookie_json = json_encode($cookie_content);
-        $cookie = hash_hmac(self::$config['digest_method'], $cookie_json,
-                            self::$config['secret_key']) . '|' . $cookie_json;
-        self::_wipe_previous_cookie(self::$config['name']);
-        setcookie(self::$config['name'], $cookie, $now + self::$config['ttl'],
-                  self::$config['path'], self::$config['domain'], FALSE, TRUE);
-        $_COOKIE[self::$config['name']] = $cookie;
+    static function set($key, $value, $lifetime=null) {
+      if(!$lifetime)
+      {
+        $lifetime = 365*24*60*60;
+      }
+      $cookie_content = self::_fetch_cookie_content();
+      $now = time();
+      $cookie_content->{$key} = array('value' => $value,
+                                      'expires_at' => $now + $lifetime,
+                                      'ttl'=>$lifetime);
+      $cookie_json = json_encode($cookie_content);
+      $cookie = hash_hmac(self::$config['digest_method'], $cookie_json,
+                          self::$config['secret_key']) . '|' . $cookie_json;
+      self::_wipe_previous_cookie(self::$config['name']);
+      setcookie(self::$config['name'], $cookie, $now + self::$config['ttl'],
+                self::$config['path'], self::$config['domain'], FALSE, TRUE);
+      $_COOKIE[self::$config['name']] = $cookie;
 
-        return TRUE;
+      return TRUE;
     }
     
-    static function get($key) {
+    static function extend($key)
+    {
+      $entry = self::_get($key);
+      if(!$entry) return;
+      self::set($key, $entry->value, $entry->ttl);
+    }
+    
+    static function _get($key) {
         $cookie_content = self::_fetch_cookie_content();
         if (!isset($cookie_content->{$key})) {
             return NULL;
@@ -42,12 +54,17 @@ class SessionMixin extends Mixin {
             
             return NULL;
         }
-        return $entry->value;
+        return $entry;
+    }
+
+    static function get($key) {
+      $entry = self::_get($key);
+      if(!$entry) return null;
+      return $entry->value;
     }
     
     static function delete($key) {
-        global $__wicked;
-        $config = $__wicked['modules']['cookie_session'];
+        $config = W::module('cookie_session');
 
         $cookie_content = self::_fetch_cookie_content();
         $key_existed = isset($cookie_content->{$key});
@@ -64,8 +81,7 @@ class SessionMixin extends Mixin {
     }
     
     static function delete_all() {
-        global $__wicked;
-        $config = $__wicked['modules']['cookie_session'];
+        $config = W::module('cookie_session');
 
         self::_wipe_previous_cookie(self::$config['name']);
         setcookie(self::$config['name'], '', 1, self::$config['path'], self::$config['domain'],
